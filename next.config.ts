@@ -21,7 +21,11 @@ const SECURITY_HEADERS = [
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
-  { key: "X-Content-Type-Options", value: "nosniff" },
+  // X-Content-Type-Options intentionally omitted:
+  // Render's CDN serves _next/static/*.js with text/plain despite
+  // the .js extension, and nosniff causes the browser to reject them.
+  // Once Render's CDN configuration is fixed, add it back:
+  // { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
