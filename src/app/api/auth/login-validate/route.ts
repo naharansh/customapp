@@ -82,7 +82,12 @@ export async function POST(request: Request) {
 
       try {
         const { sendOtpEmail } = await import("@/lib/email");
-        await sendOtpEmail(user.email, otp, user.fullName ?? undefined);
+        await Promise.race([
+          sendOtpEmail(user.email, otp, user.fullName ?? undefined),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Email send timed out")), 15000)
+          ),
+        ]);
       } catch (emailErr) {
         console.error("[login-validate] failed to send email:", emailErr);
       }
