@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,12 +36,12 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      console.log(res)
       if (!res.ok) {
         let message = "Invalid email or password";
         try {
           const errData = await res.json();
           if (errData.error) message = errData.error;
+          alert("login-validate error: " + JSON.stringify(errData));
         } catch {}
         setError(message);
         setLoading(false);
@@ -50,6 +49,7 @@ export default function LoginPage() {
       }
 
       const data = await res.json();
+      alert("login-validate success: " + JSON.stringify(data));
 
       if (data.step === "2fa") {
         if (data.devOtp) {
@@ -61,12 +61,15 @@ export default function LoginPage() {
       }
 
       if (data.step === "signin" && data.loginToken) {
-        const result = await signIn("credentials", {
-          loginToken: data.loginToken,
-          redirect: false,
+        const cbRes = await fetch("/api/auth/credentials-callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loginToken: data.loginToken }),
         });
 
-        if (result?.ok && !result?.error) {
+        const cbData = await cbRes.json();
+
+        if (cbData.success) {
           window.location.href = "/dashboard";
           return;
         }
@@ -119,12 +122,15 @@ export default function LoginPage() {
         return;
       }
 
-      const result = await signIn("credentials", {
-        loginToken: data.loginToken,
-        redirect: false,
+      const cbRes = await fetch("/api/auth/credentials-callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginToken: data.loginToken }),
       });
 
-      if (result?.ok && !result?.error) {
+      const cbData = await cbRes.json();
+
+      if (cbData.success) {
         window.location.href = "/dashboard";
         return;
       }
