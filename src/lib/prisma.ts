@@ -1,31 +1,33 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function ensureSsl(url: string): string {
+function getDatasourceUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      "DATABASE_URL is not set. Configure it in your environment variables."
+    );
+  }
   const parsed = new URL(url);
   if (
     parsed.hostname !== "localhost" &&
     parsed.hostname !== "127.0.0.1" &&
-    !parsed.searchParams.has("sslmode")
+    !parsed.searchParams.has("ssl")
   ) {
-    parsed.searchParams.set("sslmode", "require");
+    parsed.searchParams.set("ssl", "true");
   }
   return parsed.toString();
 }
 
 function getPrisma(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    const url = process.env.DATABASE_URL;
-    if (!url) {
-      throw new Error(
-        "DATABASE_URL is not set. Configure it in your environment variables."
-      );
-    }
-    process.env.DATABASE_URL = ensureSsl(url);
-    globalForPrisma.prisma = new PrismaClient();
+    const url = getDatasourceUrl();
+    const adapter = new PrismaMariaDb(url);
+    globalForPrisma.prisma = new PrismaClient({ adapter });
   }
   return globalForPrisma.prisma;
 }

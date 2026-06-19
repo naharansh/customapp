@@ -5,6 +5,7 @@ export async function proxy(request: NextRequest) {
   const origin = new URL(request.url).origin;
   process.env.AUTH_URL = origin;
   process.env.NEXTAUTH_URL = origin;
+  process.env.NEXTAUTH_URL_INTERNAL = origin;
 
   const token = await getToken({ req: request, secret: process.env.AUTH_SECRET })
   const user = token?.id ? token : null

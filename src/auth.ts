@@ -52,12 +52,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id!;
       }
       if (trigger === "signIn" || trigger === "signUp" || (token.id && token.twoFactorEnabled === undefined)) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: (token.id || user?.id)! },
-          select: { twoFactorEnabled: true },
-        });
-        if (dbUser) {
-          token.twoFactorEnabled = dbUser.twoFactorEnabled;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: (token.id || user?.id)! },
+            select: { twoFactorEnabled: true },
+          });
+          if (dbUser) {
+            token.twoFactorEnabled = dbUser.twoFactorEnabled;
+          }
+        } catch {
+          // Database unavailable — session works without 2FA flag
         }
       }
       return token;
