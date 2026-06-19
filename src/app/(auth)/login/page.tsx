@@ -41,7 +41,6 @@ export default function LoginPage() {
         try {
           const errData = await res.json();
           if (errData.error) message = errData.error;
-          alert("login-validate error: " + JSON.stringify(errData));
         } catch {}
         setError(message);
         setLoading(false);
@@ -49,7 +48,6 @@ export default function LoginPage() {
       }
 
       const data = await res.json();
-      alert("login-validate success: " + JSON.stringify(data));
 
       if (data.step === "2fa") {
         if (data.devOtp) {

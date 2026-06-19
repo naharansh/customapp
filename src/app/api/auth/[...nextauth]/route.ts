@@ -2,44 +2,35 @@ import { NextRequest } from "next/server";
 import { handlers } from "@/auth";
 
 export async function GET(request: NextRequest) {
-  return withCleanEnv(handlers.GET, request);
+  return withLiveEnv(handlers.GET, request);
 }
 
 export async function POST(request: NextRequest) {
-  return withCleanEnv(handlers.POST, request);
+  return withLiveEnv(handlers.POST, request);
 }
 
 /**
- * next-auth's `reqWithEnvURL` (lib/env.js) rewrites the request origin
- * to match `AUTH_URL`/`NEXTAUTH_URL`. In production those may be unset
- * or still point to `localhost:3000` from the `.env` template, which
- * corrupts the internal URL and causes `@auth/core` to redirect GET
- * session requests to an HTML error page instead of returning JSON.
- *
- * We temporarily clear the env var so `reqWithEnvURL` returns the
- * request URL unchanged.
+ * Ensures AUTH_URL/NEXTAUTH_URL match the actual request origin.
+ * proxy.ts also sets these, but this is a safety net for direct
+ * requests to the API route (e.g. from next-auth internals).
  */
-async function withCleanEnv(
+async function withLiveEnv(
   handler: (req: NextRequest) => Promise<Response>,
   request: NextRequest,
 ): Promise<Response> {
+  const origin = new URL(request.url).origin;
   const orig = process.env.AUTH_URL;
   const origNext = process.env.NEXTAUTH_URL;
 
-  const needsCleanup =
-    orig?.includes("localhost") || origNext?.includes("localhost");
-
-  if (needsCleanup) {
-    process.env.AUTH_URL = "";
-    process.env.NEXTAUTH_URL = "";
+  if (origin !== orig || origin !== origNext) {
+    process.env.AUTH_URL = origin;
+    process.env.NEXTAUTH_URL = origin;
   }
 
   try {
     return await handler(request);
   } finally {
-    if (needsCleanup) {
-      process.env.AUTH_URL = orig;
-      process.env.NEXTAUTH_URL = origNext;
-    }
+    if (process.env.AUTH_URL !== orig) process.env.AUTH_URL = orig;
+    if (process.env.NEXTAUTH_URL !== origNext) process.env.NEXTAUTH_URL = origNext;
   }
 }
